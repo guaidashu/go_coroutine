@@ -1,3 +1,5 @@
 test
 .idea
-vscode
+.vscode
+main
+go_coroutine
