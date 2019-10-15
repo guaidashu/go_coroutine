@@ -3,3 +3,6 @@ test
 .vscode
 main
 go_coroutine
+go.sum
+.DS_Store
+**/.DS_Store
