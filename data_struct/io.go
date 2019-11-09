@@ -9,7 +9,9 @@ import (
 	"fmt"
 	client "github.com/influxdata/influxdb1-client/v2"
 	"io"
+	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -54,20 +56,50 @@ type WriteToFluxDB struct {
 
 func (w *WriteToFluxDB) Write(wc chan *Message) {
 	// 写入模块
+
+	influxConfig := strings.Split(w.InfluxDBDsn, "@")
+
 	c, err := client.NewHTTPClient(client.HTTPConfig{
-		Addr: "http://localhost:8086",
+		Addr:     influxConfig[0],
+		Username: influxConfig[1],
+		Password: influxConfig[2],
 	})
 	if err != nil {
 		fmt.Println("Error creating InfluxDB Client: ", err.Error())
 	}
-	defer c.Close()
+	defer func() {
+		_ = c.Close()
+	}()
 
-	q := client.NewQuery("SELECT count(value) FROM cpu_load", "mydb", "")
-	if response, err := c.Query(q); err == nil && response.Error() == nil {
-		fmt.Println(response.Results)
-	}
+	for v := range wc {
+		bp, err := client.NewBatchPoints(client.BatchPointsConfig{
+			Database:  influxConfig[3],
+			Precision: influxConfig[4],
+		})
 
-	for {
-		fmt.Println(<-wc)
+		if err != nil {
+			fmt.Println("Error creating NewBatchPoints: ", err.Error())
+		}
+
+		tags := map[string]string{"Path": v.Path, "Method": v.Method, "Scheme": v.Scheme, "Status": v.Status}
+
+		fields := map[string]interface{}{
+			"UpstreamTime": v.UpstreamTime,
+			"RequestTime":  v.RequestTime,
+			"BytesSent":    v.BytesSent,
+		}
+
+		// client.NewPoint(表名, tags, fields, time)
+		pt, err := client.NewPoint("nginx_log", tags, fields, time.Now())
+		if err != nil {
+			log.Fatal(err)
+		}
+		bp.AddPoint(pt)
+
+		if err := c.Write(bp); err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("write success")
 	}
 }

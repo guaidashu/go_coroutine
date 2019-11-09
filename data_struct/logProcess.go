@@ -5,7 +5,10 @@
 package data_struct
 
 import (
+	"encoding/json"
+	"io"
 	"log"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -25,6 +28,33 @@ type Message struct {
 	BytesSent                    int
 	Path, Method, Scheme, Status string
 	UpstreamTime, RequestTime    float64
+}
+
+type SystemInfo struct {
+	HandleLine   int     `json:"handleLine"`   // 总处理行数
+	Tps          float64 `json:"tps"`          // 系统吞吐量
+	ReadChanLen  int     `json:"readChanLen"`  // read channel 长度
+	WriteChanLen int     `json:"writeChanLen"` // write channel 长度
+	RunTime      string  `json:"runTime"`      // 运行总时间
+	ErrNum       int     `json:"errNum"`       // 错误数
+}
+
+type Monitor struct {
+	StartTime time.Time
+	Data      SystemInfo
+}
+
+func (m *Monitor) Start(lp *LogProcess) {
+	http.HandleFunc("/monitor", func(writer http.ResponseWriter, request *http.Request) {
+		m.Data.RunTime = time.Now().Sub(m.StartTime).String()
+		m.Data.ReadChanLen = len(lp.Rc)
+		m.Data.WriteChanLen = len(lp.Wc)
+		data, _ := json.MarshalIndent(m.Data, "", "\t")
+
+		_, _ = io.WriteString(writer, string(data))
+	})
+
+	_ = http.ListenAndServe("127.0.0.1:8998", nil)
 }
 
 func (l *LogProcess) Process() {
