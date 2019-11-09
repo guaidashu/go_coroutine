@@ -24,13 +24,13 @@ type Writer interface {
 }
 
 type ReadFromFile struct {
-	Path string //文件路径
+	Path string // 文件路径
 }
 
 func (r *ReadFromFile) Read(rc chan []byte) {
 	// 读取模块
 	// 打开文件
-	//fmt.Println("执行到了这里")
+	// fmt.Println("执行到了这里")
 	file, err := os.Open(r.Path)
 	if err != nil {
 		panic(fmt.Sprintf("open file failed, errors: %s", err.Error()))

@@ -104,8 +104,8 @@ func (l *LogProcess) Process() {
 
 		l.Wc <- message
 	}
-	//for {
+	// for {
 	//	data := <-l.Rc
 	//	l.Wc <- strings.ToUpper(string(data))
-	//}
+	// }
 }
